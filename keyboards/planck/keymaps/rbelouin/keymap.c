@@ -2,7 +2,7 @@
 #include "muse.h"
 #include "keymap_bepo.h"
 
-enum planck_layers { _BASE, _LOWER, _RAISE, _ADJUST, _SEQUENCER };
+enum planck_layers { _BASE, _LOWER, _RAISE, _ADJUST, _QWERTY, _SEQUENCER };
 
 enum planck_sequencer_tracks {
     KICK,
@@ -61,6 +61,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     _______,    KC_AUDIO_MUTE,        KC_AUDIO_VOL_DOWN,  KC_AUDIO_VOL_UP,        KC_MEDIA_PLAY_PAUSE,  _______,    LCMD(KC_LEFT),  KC_LEFT,     KC_DOWN,     KC_UP,     KC_RIGHT,     LCMD(KC_RIGHT),
     _______,    KC_MS_WH_LEFT,        KC_MS_WH_UP,        KC_MS_WH_DOWN,          KC_MS_WH_RIGHT,       _______,    KC_MS_BTN1,     KC_MS_LEFT,  KC_MS_DOWN,  KC_MS_UP,  KC_MS_RIGHT,  KC_MS_BTN2,
     SEQUENCER,  _______,              _______,            _______,                _______,              KC_DELETE,  KC_DELETE,      _______,     _______,     _______,   _______,      _______
+),
+
+/**
+ * Qwerty: a QWERTY layout with BÉPO keycodes. Most CMD + letter shortcuts are more accessible in QWERTY.
+ */
+[_QWERTY] = LAYOUT_planck_grid(
+    _______,  BP_Q,     BP_W,     BP_E,     BP_R,     BP_T,     BP_Y,     BP_U,     BP_I,     BP_O,     BP_P,     _______,
+    _______,  BP_A,     BP_S,     BP_D,     BP_F,     BP_G,     BP_H,     BP_J,     BP_K,     BP_L,     _______,  _______,
+    _______,  BP_Z,     BP_X,     BP_C,     BP_V,     BP_B,     BP_N,     BP_M,     _______,  _______,  _______,  _______,
+    _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______,  _______
 ),
 
 /**
@@ -143,7 +153,23 @@ void rgb_matrix_indicators_user(void) {
 
 layer_state_t layer_state_set_user(layer_state_t state) { return update_tri_layer_state(state, _LOWER, _RAISE, _ADJUST); }
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record) { return true; }
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        /**
+         * Most CMD + letter shortcuts are more accessible in QWERTY.
+         */
+        case KC_LCMD:
+        case KC_RCMD:
+            if (record->event.pressed && layer_state_is(_BASE)) {
+                layer_on(_QWERTY);
+            } else if (!record->event.pressed) {
+                layer_off(_QWERTY);
+            }
+            break;
+    }
+
+    return true;
+}
 
 void keyboard_post_init_user(void) {
     // Reset the octave offset to 0
