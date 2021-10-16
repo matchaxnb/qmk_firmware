@@ -26,9 +26,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * Base: bépo layout’s three main rows.
  */
 [_BASE] = LAYOUT_planck_grid(
-    KC_TAB,     BP_B,     BP_ECUT,  BP_P,     BP_O,    BP_EGRV,           BP_DCRC,           BP_V,   BP_D,     BP_L,     BP_J,     BP_Z,
+    KC_TAB,     BP_B,     BP_EACU,  BP_P,     BP_O,    BP_EGRV,           BP_DCIR,           BP_V,   BP_D,     BP_L,     BP_J,     BP_Z,
     KC_ESCAPE,  BP_A,     BP_U,     BP_I,     BP_E,    BP_COMM,           BP_C,              BP_T,   BP_S,     BP_R,     BP_N,     BP_M,
-    BP_CCED,    BP_AGRV,  BP_Y,     BP_X,     BP_DOT,  BP_K,              BP_APOS,           BP_Q,   BP_G,     BP_H,     BP_F,     BP_W,
+    BP_CCED,    BP_AGRV,  BP_Y,     BP_X,     BP_DOT,  BP_K,              BP_QUOT,           BP_Q,   BP_G,     BP_H,     BP_F,     BP_W,
     KC_LSFT,    KC_LCTL,  KC_LOPT,  KC_LCMD,  LOWER,   ROPT_T(KC_SPACE),  ROPT_T(KC_SPACE),  RAISE,  KC_RCMD,  KC_ROPT,  KC_RCTL,  KC_RSFT
 ),
 
@@ -37,9 +37,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * One exception though, the % and ` signs are more useful than a ° (shift =).
  */
 [_LOWER] = LAYOUT_planck_grid(
-    ROPT(BP_DLR),  ROPT(BP_DQOT),  ROPT(BP_LGIL),  ROPT(BP_RGIL),  ROPT(BP_LPRN),  ROPT(BP_RPRN),  LOPT(BP_AT),  LOPT(BP_PLUS),  LOPT(BP_MINS),  LOPT(BP_SLSH),  LOPT(BP_ASTR),  LOPT(BP_EQL),
-    BP_DLR,        BP_DQOT,        BP_LGIL,        BP_RGIL,        BP_LPRN,        BP_RPRN,        BP_AT,        BP_PLUS,        BP_MINS,        BP_SLSH,        BP_ASTR,        BP_EQL,
-    RSFT(BP_DLR),  RSFT(BP_DQOT),  RSFT(BP_LGIL),  RSFT(BP_RGIL),  RSFT(BP_LPRN),  RSFT(BP_RPRN),  LSFT(BP_AT),  LSFT(BP_PLUS),  LSFT(BP_MINS),  LSFT(BP_SLSH),  LSFT(BP_ASTR),  BP_PERC,
+    ROPT(BP_DLR),  ROPT(BP_DQUO),  ROPT(BP_LDAQ),  ROPT(BP_RDAQ),  ROPT(BP_LPRN),  ROPT(BP_RPRN),  LOPT(BP_AT),  LOPT(BP_PLUS),  LOPT(BP_MINS),  LOPT(BP_SLSH),  LOPT(BP_ASTR),  LOPT(BP_EQL),
+    BP_DLR,        BP_DQUO,        BP_LDAQ,        BP_RDAQ,        BP_LPRN,        BP_RPRN,        BP_AT,        BP_PLUS,        BP_MINS,        BP_SLSH,        BP_ASTR,        BP_EQL,
+    RSFT(BP_DLR),  RSFT(BP_DQUO),  RSFT(BP_LDAQ),  RSFT(BP_RDAQ),  RSFT(BP_LPRN),  RSFT(BP_RPRN),  LSFT(BP_AT),  LSFT(BP_PLUS),  LSFT(BP_MINS),  LSFT(BP_SLSH),  LSFT(BP_ASTR),  BP_PERC,
     _______,       _______,        _______,        _______,        _______,        KC_ENTER,       KC_ENTER,     _______,        _______,        _______,        _______,        _______
 ),
 
@@ -47,8 +47,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * Raise: custom coding layer.
  */
 [_RAISE] = LAYOUT_planck_grid(
-    _______,  ROPT(BP_B),  _______,  ROPT(BP_P),  BP_LESS,  _______,    _______,    BP_GRTR,  _______,  _______,  _______,        BP_EQL,
-    BP_DLR,   BP_DQOT,     BP_LBRC,  BP_LCBR,     BP_LPRN,  _______,    _______,    BP_RPRN,  BP_RCBR,  BP_RBRC,  ROPT(BP_COMM),  BP_PERC,
+    _______,  ROPT(BP_B),  _______,  ROPT(BP_P),  BP_LABK,  _______,    _______,    BP_RABK,  _______,  _______,  _______,        BP_EQL,
+    BP_DLR,   BP_DQUO,     BP_LBRC,  BP_LCBR,     BP_LPRN,  _______,    _______,    BP_RPRN,  BP_RCBR,  BP_RBRC,  ROPT(BP_COMM),  BP_PERC,
     BP_HASH,  BP_1,        BP_2,     BP_3,        BP_4,     BP_5,       BP_6,       BP_7,     BP_8,     BP_9,     BP_0,           KC_CAPSLOCK,
     _______,  _______,     _______,  _______,     _______,  KC_BSPACE,  KC_BSPACE,  _______,  _______,  _______,  _______,        _______
 ),
@@ -96,60 +96,6 @@ const uint8_t led_map[MATRIX_ROWS][MATRIX_COLS] = LAYOUT_planck_grid(
     36,  37,  38,  39,  40,  41,  41,  42,  43,  44,  45,  46
 );
 // clang-format on
-
-#define RGB_BLACK 0, 0, 0
-
-void rgb_matrix_indicators_sequencer(void) {
-    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
-        for (uint8_t column = 0; column < MATRIX_COLS; column++) {
-            uint8_t  led_index = led_map[row][column];
-            uint16_t keycode   = keymaps[_SEQUENCER][row][column];
-
-            switch (keycode) {
-                case SQ_TOG:
-                case SEQUENCER:
-                    break;
-                case SQ_SALL:
-                case SQ_SCLR:
-                    rgb_matrix_set_color(led_index, RGB_RED);
-                    break;
-                case SQ_TMPD:
-                case SQ_TMPU:
-                    rgb_matrix_set_color(led_index, RGB_BLUE);
-                    break;
-                case SQ_RESD:
-                case SQ_RESU:
-                    rgb_matrix_set_color(led_index, RGB_CYAN);
-                    break;
-                case SEQUENCER_TRACK_MIN ... SEQUENCER_TRACK_MAX:
-                    if (is_sequencer_track_active(keycode - SEQUENCER_TRACK_MIN)) {
-                        rgb_matrix_set_color(led_index, RGB_ORANGE);
-                    } else {
-                        rgb_matrix_set_color(led_index, 0x20, 0x10, 0x00);
-                    }
-                    break;
-                case SEQUENCER_STEP_MIN ... SEQUENCER_STEP_MAX:
-                    if (is_sequencer_on() && sequencer_get_current_step() == (keycode - SEQUENCER_STEP_MIN)) {
-                        rgb_matrix_set_color(led_index, RGB_PURPLE);
-                    } else if (is_sequencer_step_on(keycode - SEQUENCER_STEP_MIN)) {
-                        rgb_matrix_set_color(led_index, RGB_WHITE);
-                    } else {
-                        rgb_matrix_set_color(led_index, RGB_BLACK);
-                    }
-                    break;
-                default:
-                    rgb_matrix_set_color(led_index, RGB_BLACK);
-                    break;
-            }
-        }
-    }
-}
-
-void rgb_matrix_indicators_user(void) {
-    if (layer_state_is(_SEQUENCER)) {
-        rgb_matrix_indicators_sequencer();
-    }
-}
 
 layer_state_t layer_state_set_user(layer_state_t state) { return update_tri_layer_state(state, _LOWER, _RAISE, _ADJUST); }
 
