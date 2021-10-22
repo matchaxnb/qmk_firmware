@@ -99,6 +99,9 @@ const uint8_t led_map[MATRIX_ROWS][MATRIX_COLS] = LAYOUT_planck_grid(
 
 layer_state_t layer_state_set_user(layer_state_t state) { return update_tri_layer_state(state, _LOWER, _RAISE, _ADJUST); }
 
+bool pressed_command = false;
+bool pressed_control = false;
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         /**
@@ -107,9 +110,25 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case KC_LCMD:
         case KC_RCMD:
             if (record->event.pressed && layer_state_is(_BASE)) {
+                pressed_command = true;
                 layer_on(_QWERTY);
             } else if (!record->event.pressed) {
+                pressed_command = false;
                 layer_off(_QWERTY);
+            }
+            break;
+
+        case KC_LCTL:
+        case KC_RCTL:
+            pressed_control = record->event.pressed;
+            break;
+
+        /**
+         * Toggle backlighting when locking the screen on macOS
+         */
+        case BP_Q:
+            if (record->event.pressed && pressed_command && pressed_control) {
+                rgb_matrix_toggle();
             }
             break;
     }
