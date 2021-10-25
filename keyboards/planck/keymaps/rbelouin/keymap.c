@@ -17,9 +17,19 @@ const uint16_t planck_sequencer_track_notes[SEQUENCER_TRACKS] = {[KICK] = MI_C_1
 
 #define LOWER MO(_LOWER)
 #define RAISE MO(_RAISE)
-#define SEQUENCER TG(_SEQUENCER)
+#define LAY_SEQ TG(_SEQUENCER)
+
+#define LAYOUT_planck_grid_wrapper(...) LAYOUT_planck_grid(__VA_ARGS__)
+#define sequencer_get_keycodes(...) sequencer_get_keycodes_48(__VA_ARGS__)
+#define sequencer_get_indices(...) sequencer_get_indices_48(__VA_ARGS__)
 
 // clang-format off
+#define SEQUENCER_MAP \
+    SQ_SALL,  SQ_S(0x00),  SQ_S(0x01),  SQ_S(0x02),  SQ_S(0x03),  SQ_T(KICK),    SQ_T(SNARE),   SQ_S(0x04),  SQ_S(0x05),  SQ_S(0x06),  SQ_S(0x07),  SQ_TMPU,  \
+    SQ_SCLR,  SQ_S(0x08),  SQ_S(0x09),  SQ_S(0x0A),  SQ_S(0x0B),  SQ_T(HIHAT1),  SQ_T(HIHAT2),  SQ_S(0x0C),  SQ_S(0x0D),  SQ_S(0x0E),  SQ_S(0x0F),  SQ_TMPD,  \
+    XXXXXXX,  SQ_S(0x10),  SQ_S(0x11),  SQ_S(0x12),  SQ_S(0x13),  SQ_T(CRASH),   SQ_T(RIDE),    SQ_S(0x14),  SQ_S(0x15),  SQ_S(0x16),  SQ_S(0x17),  SQ_RESU,  \
+    LAY_SEQ,  SQ_S(0x18),  SQ_S(0x19),  SQ_S(0x1A),  SQ_S(0x1B),  SQ_TOG,        SQ_TOG,        SQ_S(0x1C),  SQ_S(0x1D),  SQ_S(0x1E),  SQ_S(0x1F),  SQ_RESD
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 /**
@@ -60,7 +70,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     RESET,      KC_MEDIA_PREV_TRACK,  KC_MEDIA_REWIND,    KC_MEDIA_FAST_FORWARD,  KC_MEDIA_NEXT_TRACK,  RGB_TOG,    RGB_MOD,        KC_HOME,     KC_PGDOWN,   KC_PGUP,   KC_END,       LOPT(LCTL(KC_SPACE)),
     _______,    KC_AUDIO_MUTE,        KC_AUDIO_VOL_DOWN,  KC_AUDIO_VOL_UP,        KC_MEDIA_PLAY_PAUSE,  _______,    LCMD(KC_LEFT),  KC_LEFT,     KC_DOWN,     KC_UP,     KC_RIGHT,     LCMD(KC_RIGHT),
     _______,    KC_MS_WH_LEFT,        KC_MS_WH_UP,        KC_MS_WH_DOWN,          KC_MS_WH_RIGHT,       _______,    KC_MS_BTN1,     KC_MS_LEFT,  KC_MS_DOWN,  KC_MS_UP,  KC_MS_RIGHT,  KC_MS_BTN2,
-    SEQUENCER,  _______,              _______,            _______,                _______,              KC_DELETE,  KC_DELETE,      _______,     _______,     _______,   _______,      _______
+    LAY_SEQ,  _______,              _______,            _______,                _______,              KC_DELETE,  KC_DELETE,      _______,     _______,     _______,   _______,      _______
 ),
 
 /**
@@ -76,14 +86,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 /**
  * Sequencer: program and play MIDI sequences.
  */
-[_SEQUENCER] = LAYOUT_planck_grid(
-    SQ_SALL,    SQ_S(0),   SQ_S(1),   SQ_S(2),   SQ_S(3),   SQ_T(KICK),    SQ_T(SNARE),   SQ_S(4),   SQ_S(5),   SQ_S(6),   SQ_S(7),   SQ_TMPU,
-    SQ_SCLR,    SQ_S(8),   SQ_S(9),   SQ_S(10),  SQ_S(11),  SQ_T(HIHAT1),  SQ_T(HIHAT2),  SQ_S(12),  SQ_S(13),  SQ_S(14),  SQ_S(15),  SQ_TMPD,
-    XXXXXXX,    SQ_S(16),  SQ_S(17),  SQ_S(18),  SQ_S(19),  SQ_T(CRASH),   SQ_T(RIDE),    SQ_S(20),  SQ_S(21),  SQ_S(22),  SQ_S(23),  SQ_RESU,
-    SEQUENCER,  SQ_S(24),  SQ_S(25),  SQ_S(26),  SQ_S(27),  SQ_TOG,        SQ_TOG,        SQ_S(28),  SQ_S(29),  SQ_S(30),  SQ_S(31),  SQ_RESD
-)
+[_SEQUENCER] = LAYOUT_planck_grid_wrapper(sequencer_get_keycodes(SEQUENCER_MAP))
 
 };
+
+const uint16_t index_map[MATRIX_ROWS][MATRIX_COLS] = LAYOUT_planck_grid_wrapper(sequencer_get_indices(SEQUENCER_MAP));
 
 /**
  * This is not a layer but simply a helper to map a (row, column) position to a LED number,
