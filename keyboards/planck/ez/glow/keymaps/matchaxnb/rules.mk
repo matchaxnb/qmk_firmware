@@ -1,5 +1,4 @@
-
-SRC += muse.c
+# SRC += muse.c
 # See rules at https://docs.qmk.fm/#/config_options?id=the-rulesmk-file
 CONSOLE_ENABLE = yes
 COMMAND_ENABLE = no
@@ -8,3 +7,10 @@ SEQUENCER_ENABLE = yes
 RGB_MATRIX_ENABLE = yes
 RGB_MATRIX_DRIVER = IS31FL3737
 TAP_DANCE_ENABLE = no
+MOUSEKEY_ENABLE = no
+PS2_MOUSE_ENABLE = no
+JOYSTICK_ENABLE = no
+PROGRAMMABLE_BUTTON_ENABLE = no
+VIA_ENABLE = no
+AUDIO_ENABLE = no
+COMBO_ENABLE = no
