@@ -19,6 +19,7 @@ void transition_step(void) ;
 void apply_rgb_matrix_to_tracks(const RGB **colors) ;
 void display_function_keys(void) ;
 void display_paused_seq(void) ;
+uint32_t handle_midi_clock(uint32_t trigger_time, void *cb_arg);
 void apply_rgb_matrix_to_steps(const RGB **colors) ;
 void display_paused_note_matrix(void) ;
 void rgb_matrix_indicators_user(void) ;

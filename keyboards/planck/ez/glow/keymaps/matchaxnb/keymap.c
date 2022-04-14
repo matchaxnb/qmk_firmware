@@ -41,7 +41,8 @@ typedef struct {
 typedef struct {
   uint16_t attention_timer; // ATTENTION_MS
   uint16_t timer_play_pause; // QUIET_TIMER
-  uint16_t midi_clock_timer;
+  uint16_t midi_clock_interval;
+  deferred_token midi_clock_handle;
   uint16_t timer_event_1; // EYEBLINK_TIMER
   uint16_t timer_event_2; // 4-beat timer (computed)
   uint8_t timer_event_1_context; // hold some context
@@ -63,7 +64,7 @@ typedef struct {
 extern rgb_config_t rgb_matrix_config;
 extern rgb_config_t rgb_matrix_config;
 extern sequencer_config_t sequencer_config;
-
+extern MidiDevice midi_device;
 // keycodes defines
 // set a mapping of tracks to KC_KP_1...
 #define MSQ_T(n) (n <=  SEQUENCER_TRACKS ? KC_KP_1 + n : KC_NO)
@@ -109,7 +110,7 @@ extern sequencer_config_t sequencer_config;
 #define BAR_DURATION (sequencer_get_beat_duration() * BAR_LENGTH)
 
 // midi defines
-#define CLOCK_PPQN 4
+#define MIDI_CLOCK_PPQN 4
 
 // aesthetic defines
 // orange
@@ -274,7 +275,8 @@ matcha_sequencer_state_t matcha_sequencer_state = {
 matcha_sequencer_internal_state_t internal_state = {
   .attention_timer = 0,        // attention_timer; // ATTENTION_MS
   .timer_play_pause = 0,        // timer_play_pause; // QUIET_TIMER
-  .midi_clock_timer = 0,
+  .midi_clock_interval = 1000 / 96,
+  .midi_clock_handle = 0,
   .timer_event_1 = 0,        // timer_event_1; // EYEBLINK_TIMER
   .timer_event_2 = 0,        // timer_event_2; // 4-beat (unimplemented)
   .timer_event_1_context =0,        // timer_event_1_context; // bitmask for some context passing
@@ -310,19 +312,24 @@ void keyboard_post_init_user(void) {
   matcha_sequencer_state.active_step = SEQUENCER_STEPS + 1;
   sequencer_config.resolution = SQ_RES_16;
   s_set_tempo(100);
+  internal_state.midi_clock_handle = defer_exec(internal_state.midi_clock_interval, &handle_midi_clock, NULL);
+}
+
+void refresh_midi_interval(void) {
+  internal_state.midi_clock_interval = 60000 / internal_state.tempo / 4 / MIDI_CLOCK_PPQN;
 }
 
 void s_set_tempo(uint8_t tempo) {
   internal_state.tempo = tempo;
   sequencer_set_tempo(tempo);
-  internal_state.midi_clock_timer = timer_read();
+  refresh_midi_interval();
   PRINTF("s_set_tempo: %d\n", tempo);
 }
 
 void s_decrease_tempo(void) {
   sequencer_decrease_tempo();
   internal_state.tempo = sequencer_get_tempo();
-  internal_state.midi_clock_timer = timer_read();
+  refresh_midi_interval();
   PRINTF("s_decrease_tempo: %d\n", internal_state.tempo);
   
 }
@@ -330,7 +337,7 @@ void s_decrease_tempo(void) {
 void s_increase_tempo(void) {
   sequencer_increase_tempo();
   internal_state.tempo = sequencer_get_tempo();
-  internal_state.midi_clock_timer = timer_read();
+  refresh_midi_interval();
   PRINTF("s_increase_tempo: %d\n", internal_state.tempo);
 }
 
@@ -454,12 +461,18 @@ void trigger_attention_timer(void) {
   internal_state.attention_timer = timer_read();
 }
 
+uint32_t handle_midi_clock(uint32_t trigger_time, void *cb_arg) {
+  midi_send_clock(&midi_device);
+  dprintf("handle_midi_clock::trigger %d\n", trigger_time);
+  return internal_state.midi_clock_interval;
+}
+
 void check_release_timers(void) {
     /* release timers once they have expired their shelf life */
-    if (internal_state.midi_clock_timer > 0 && timer_elapsed(internal_state.midi_clock_timer) > 60000 / internal_state.tempo / (CLOCK_PPQN * 4)) {
-      process_midi_clock();
-      internal_state.midi_clock_timer = timer_read();
-    }
+    /*if (internal_state.midi_clock_interval > 0 && timer_elapsed(internal_state.midi_clock_interval) > 60000 / internal_state.tempo / (MIDI_CLOCK_PPQN * 4)) {
+      midi_send_clock(&midi_device);
+      internal_state.midi_clock_interval = timer_read();
+    }*/
 
     if (internal_state.attention_timer > 0 && timer_elapsed(internal_state.attention_timer) > BAR_DURATION) {
       trigger_attention_timer();
