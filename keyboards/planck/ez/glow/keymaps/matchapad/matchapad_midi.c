@@ -55,6 +55,31 @@ extern matchapad_state_t matchapad_state;
 extern matchapad_internal_state_t matchapad_internal_state;
 
 
+int compare_uint16(const void * a, const void * b) {
+  const uint16_t * c = a;
+  const uint16_t * d = b;
+  return (*c > *d) - (*c < *d);
+}
+
+void matchapad_update_qn_interval(uint16_t bpm, uint8_t collec_len, uint16_t* bpms) {
+  // insert this to the head
+  memmove(bpms + 1, bpms, (collec_len - 1) * sizeof(uint16_t));
+  bpms[0] = bpm;
+}
+
+uint16_t get_array_median(const uint16_t * ary, uint8_t len) {
+  uint16_t * st = malloc(sizeof(uint16_t) * len);
+  uint16_t median;
+  memcpy(st, ary, len * sizeof(uint16_t));
+
+  // now sort things
+  qsort(st, len, sizeof(uint16_t), &compare_uint16);
+  // and return the middle value
+  median = st[len / 2];
+  free(st);
+  return median;
+}
+
 void manage_midi_clock(void) {
   switch (matchapad_state.midi_mode) {
     case MODE_MASTER:
@@ -121,13 +146,90 @@ int compare_sysex_buf(uint8_t size, ...) {
   va_end(args);
   outcome = memcmp(toCompare, matchapad_internal_state.sysex_guard, size + 2);
   free(toCompare);
-  return outcome;
+return outcome;
+}
+
+void matchapad_midi_tick(void) {
+  // handle a MIDI tick
+  t_matchapad_tick_h * th = matchapad_internal_state.driver->tick_handler;
+  (*th)(matchapad_internal_state.midi_clock_interval_walker);
 }
 
 #define _CHECK_SYSEX_GUARD(val) (compare_sysex_buf(1, (val)) == 0)
 #define _CHECK_SYSEX_GUARD_2(val1, val2) (compare_sysex_buf(2, (val1), (val2)) == 0)
 #define _CHECK_SYSEX_GUARD_3(val1, val2, val3) (compare_sysex_buf(3, (val1), (val2), (val3)) == 0)
 #define _CHECK_SYSEX_GUARD_4(val1, val2, val3, val4) (compare_sysex_buf(4, (val1), (val2), (val3), (val4)) == 0)
+__attribute__((optimize("unroll-loops")))
+void matchapad_process_realtime(MidiDevice *device, uint8_t byte) {
+  uint32_t average_interval = 0;
+  uint8_t i;
+  switch (matchapad_state.midi_mode) {
+    case MODE_LISTEN:
+      switch (byte) {
+        case 0xFA: // MIDI start
+          matchapad_internal_state.midi_play = true;
+          matchapad_internal_state.midi_clock_interval_walker = 0; // force recount clock
+          break;
+        case 0xFC: // MIDI stop
+          matchapad_internal_state.midi_play = false;
+          break;
+        case 0xF8: // MIDI clock
+          switch (matchapad_internal_state.midi_clock_interval_walker) {
+            case 0:
+              matchapad_internal_state.midi_clock_timer = timer_read32();
+              // matchapad_internal_state.midi_clock_interval[0] = 0;
+              matchapad_internal_state.prev_read_clock = 0;
+              matchapad_internal_state.midi_clock_interval_walker++;
+              break;
+            case 1 ... BPM_ONE_MEASURE_COUNT - 1:
+              // populate the walker array with intervals
+              uint8_t * w = &(matchapad_internal_state.midi_clock_interval_walker);
+              uint32_t *prev_value = &(matchapad_internal_state.prev_read_clock);
+              uint32_t elapsed = timer_elapsed32(matchapad_internal_state.midi_clock_timer);
+
+              matchapad_internal_state.midi_clock_interval[*w - 1] = elapsed - *prev_value;
+              (*w)++;
+              *prev_value = elapsed;
+              break;
+            case BPM_ONE_MEASURE_COUNT:
+              for (i = 0; i < BPM_ONE_MEASURE_COUNT - 1; i++) {
+                average_interval += matchapad_internal_state.midi_clock_interval[i];
+              }
+              // now offset by 16 bits 
+              average_interval <<= 16;
+              // BPM_ONE_MEASURE_COUNT samplings: we measure one less interval
+              average_interval /= (BPM_ONE_MEASURE_COUNT - 1);
+              // now unshift to get back to our actual number
+              average_interval >>= 16;
+              // now let's get the one-quarter-note interval = average_interval * ppqn
+              average_interval = average_interval * matchapad_state.midi_ppqn;
+              matchapad_update_qn_interval((uint16_t)average_interval, BPM_SAMPLE_COUNT, matchapad_internal_state.computed_qn_intervals);
+              matchapad_internal_state.computed_bpm = 60000 / get_array_median(matchapad_internal_state.computed_qn_intervals, BPM_SAMPLE_COUNT);
+              dprintf("computed BPM: %d PPQN %d\n", matchapad_internal_state.computed_bpm, matchapad_state.midi_ppqn);
+              matchapad_internal_state.midi_clock_interval_walker = 0;
+              break;
+            default:
+              uprintln("bad clock management");
+              break;
+          } // switch midi_clock_interval_walker
+          // now issue a tick if we are playing
+          if (matchapad_internal_state.midi_play) {
+            matchapad_midi_tick();
+          }
+          break;
+        default:
+          uprintf("unimplemented realtime byte 0x%02X\n", byte);
+          break;
+      } // switch byte
+
+      break;
+    case MODE_MASTER:
+    case MODE_UNSET:
+      break;
+    default:
+      uprintln("incorrect matchapad_state.midi_mode");
+  }
+}
 
 void matchapad_process_sysex(MidiDevice *device, uint16_t start_byte, uint8_t data_length, uint8_t *data) {
   void * matchapad_state_pointer = &matchapad_state;
@@ -186,5 +288,6 @@ void matchapad_process_sysex(MidiDevice *device, uint16_t start_byte, uint8_t da
 void matchapad_init_midi(void) {
   matchapad_internal_state.sysex_guard = malloc(SYSEX_BUF_SIZE * sizeof(uint8_t));
   midi_register_sysex_callback(&midi_device, &matchapad_process_sysex);
+  midi_register_realtime_callback(&midi_device, &matchapad_process_realtime);
 }
 
