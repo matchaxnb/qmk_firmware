@@ -76,16 +76,17 @@ You can select your time division from a broad selection.
 
 Regular time divisions:
 
-A1: 1/32 (demisemiquavers)
-A2: 1/16 (semiquavers) [initial value]
-A3: 1/8 (quavers)
-A4: 1/4 (crotchets)
+- A1: 1/32 (demisemiquavers)
+- A2: 1/16 (semiquavers) [initial value]
+- A3: 1/8 (quavers)
+- A4: 1/4 (crotchets)
 
 Triplet time divisions:
-B1: 1/16 triplets (3 of these = 2 1/16 notes = 1 1/8 note)
-B2: 1/8 triplets (3 of these = 2 1/8 notes = 1 1/4 note)
-B3: 1/4 triplets (3 of these = 2 1/4 notes)
-B4: 1/2 triplets (3 of these = 1 note = 1 4/4 bar)
+
+- B1: 1/16 triplets (3 of these = 2 1/16 notes = 1 1/8 note)
+- B2: 1/8 triplets (3 of these = 2 1/8 notes = 1 1/4 note)
+- B3: 1/4 triplets (3 of these = 2 1/4 notes)
+- B4: 1/2 triplets (3 of these = 1 note = 1 4/4 bar)
 
 For triplet time divisions, if the pattern total length isn't a multiple of 3, it will be set by default to either 12 or 24 depending on the initial setting. This can be overridden by setting it to another value.
 
@@ -99,12 +100,12 @@ In order to select the time division you want follow these instructions:
 
 Rotate through the 6 banks using the BANK button when in Pattern mode
 
-BANK 1 (red): MIDI 36 and 38 (corresponding to GM Bass Drum 1 and Snare Drum 1)
-BANK 2 (green): MIDI 43 and 47 (corresponding to GM Low Tom 1 and Mid Tom 1)
-BANK 3 (blue): MIDI 50 and 39 (corresponding to GM High Tom 1 and Hand Clap)
-BANK 4 (yellow): MIDI 56 and 49 (corresponding to GM Cowbell and Crash Cymbal 1)
-BANK 5 (purple): MIDI 46 and 42 (corresponding to GM Open Hi-Hat and Closed Hi-Hat)
-BANK 6 (orange): MIDI 35 and CC1 (corresponding to GM Kick Drum and MIDI modulation wheel)
+- BANK 1 (red): MIDI 36 and 38 (corresponding to GM Bass Drum 1 and Snare Drum 1)
+- BANK 2 (green): MIDI 43 and 47 (corresponding to GM Low Tom 1 and Mid Tom 1)
+- BANK 3 (blue): MIDI 50 and 39 (corresponding to GM High Tom 1 and Hand Clap)
+- BANK 4 (yellow): MIDI 56 and 49 (corresponding to GM Cowbell and Crash Cymbal 1)
+- BANK 5 (purple): MIDI 46 and 42 (corresponding to GM Open Hi-Hat and Closed Hi-Hat)
+- BANK 6 (orange): MIDI 35 and CC1 (corresponding to GM Kick Drum and MIDI modulation wheel)
 
 ### Page selection
 
@@ -311,24 +312,25 @@ The B13 key reverses the playback direction.
 When the special B13 modes WALKUP and UPSIDE-DOWN are set, the starting point of playback in case of PLAYSTOP becomes the first step of the last pattern in the sequence for WALKUP and the last step of the last pattern for UPSIDE-DOWN mode.
 
 You may skew the velocity ratio vR. for each of the 12 channels:
-A1/A2:   increase/decrease vR. for Zone A, 1
-B1/B2:   increase/decrease vR. for Zone B, 1
-A3/A4:   increase/decrease vR. for Zone A, 2
-B3/B4:   increase/decrease vR. for Zone B, 2
-A5/A6:   increase/decrease vR. for Zone A, 3
-B5/B6:   increase/decrease vR. for Zone B, 3
-A7/A8:   increase/decrease vR. for Zone A, 4
-B7/B8:   increase/decrease vR. for Zone B, 4
-A9/A10:  increase/decrease vR. for Zone A, 5
-B9/B10:  increase/decrease vR. for Zone B, 5
-A11/A12: increase/decrease vR. for Zone A, 6
-B11/B12: increase/decrease vR. for Zone B, 6 (Mod wheel)
+
+- A1/A2:   increase/decrease vR. for Zone A, 1
+- B1/B2:   increase/decrease vR. for Zone B, 1
+- A3/A4:   increase/decrease vR. for Zone A, 2
+- B3/B4:   increase/decrease vR. for Zone B, 2
+- A5/A6:   increase/decrease vR. for Zone A, 3
+- B5/B6:   increase/decrease vR. for Zone B, 3
+- A7/A8:   increase/decrease vR. for Zone A, 4
+- B7/B8:   increase/decrease vR. for Zone B, 4
+- A9/A10:  increase/decrease vR. for Zone A, 5
+- B9/B10:  increase/decrease vR. for Zone B, 5
+- A11/A12: increase/decrease vR. for Zone A, 6
+- B11/B12: increase/decrease vR. for Zone B, 6 (Mod wheel)
 
 Each skew lights up the corresponding key brighter. If a key pair is not lit at all then its velocity is not skewed.
 
 You may also tweak the playback BPM (except in external clock mode) by applying a tempo ratio tR.
 
-A13: reset tR.
-A14/A15: decrease/increase tR. by 1%
-A16 + A14/A15: decrease/increase tR. by 10%
-BPM + A14/A15: decrease/increase tR. by 0.1%
+- A13: reset tR.
+- A14/A15: decrease/increase tR. by 1%
+- A16 + A14/A15: decrease/increase tR. by 10%
+- BPM + A14/A15: decrease/increase tR. by 0.1%
