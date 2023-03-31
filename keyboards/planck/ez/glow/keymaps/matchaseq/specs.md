@@ -1,6 +1,6 @@
 # Matcha's MIDI sequencer
 
-A 12-channel, 16 steps, 32 patterns drum sequencer for a 40% keyboard.
+A 12-channel, 2 pages, 16 steps per page, 32 patterns drum sequencer for a 40% keyboard.
 
 # How to use
 
