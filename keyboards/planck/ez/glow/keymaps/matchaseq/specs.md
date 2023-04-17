@@ -50,8 +50,8 @@ To edit a pattern, the general workflow is as follows:
 
 - Select the pattern by chording the SEL key and one of the pattern input buttons in Zones A and B
 - Set the page and total length of the pattern using the LAST button and one of the Zone steps.
-- Set the wanted time division using the DIV+ and DIV- keys. The keys flash dimly on each beat and brightly at the first beat of each bar.
-- Set the default tempo of the pattern using the BPM+ and BPM- keys. The keys flash dimly for each quarter note.
+- Set the wanted time division using the DIV key. The key flashes dimly on each beat and brightly at the first beat of each bar.
+- Set the default tempo of the pattern using the BPM key. The key flash dimly for each quarter note.
 - Select the channel bank you want to modify. Each channel bank holds 2 channels, each channel corresponding to a MIDI note value.
 - Input the note patterns
 
