@@ -1,112 +1,55 @@
-/* Copyright 2017 Joseph Wasson
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// Copyright 2017, 2022 Joseph Wasson, Vladislav Kucheriavykh
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #include "process_steno.h"
-#include "quantum_keycodes.h"
-#include "eeprom.h"
-#include "keymap_steno.h"
-#include "virtser.h"
-#include <string.h>
+#include "steno.h"
+#include "progmem.h"
 
-// TxBolt Codes
-#define TXB_NUL 0
-#define TXB_S_L 0b00000001
-#define TXB_T_L 0b00000010
-#define TXB_K_L 0b00000100
-#define TXB_P_L 0b00001000
-#define TXB_W_L 0b00010000
-#define TXB_H_L 0b00100000
-#define TXB_R_L 0b01000001
-#define TXB_A_L 0b01000010
-#define TXB_O_L 0b01000100
-#define TXB_STR 0b01001000
-#define TXB_E_R 0b01010000
-#define TXB_U_R 0b01100000
-#define TXB_F_R 0b10000001
-#define TXB_R_R 0b10000010
-#define TXB_P_R 0b10000100
-#define TXB_B_R 0b10001000
-#define TXB_L_R 0b10010000
-#define TXB_G_R 0b10100000
-#define TXB_T_R 0b11000001
-#define TXB_S_R 0b11000010
-#define TXB_D_R 0b11000100
-#define TXB_Z_R 0b11001000
-#define TXB_NUM 0b11010000
+#ifdef STENO_ENABLE_BOLT
+void steno_add_key_to_chord_bolt(uint8_t chord[MAX_STROKE_SIZE], uint8_t key);
+void steno_send_chord_bolt(uint8_t chord[MAX_STROKE_SIZE]);
+#endif
 
-#define TXB_GRP0 0b00000000
-#define TXB_GRP1 0b01000000
-#define TXB_GRP2 0b10000000
-#define TXB_GRP3 0b11000000
-#define TXB_GRPMASK 0b11000000
+#ifdef STENO_ENABLE_GEMINI
+void steno_add_key_to_chord_gemini(uint8_t chord[MAX_STROKE_SIZE], uint8_t key);
+void steno_send_chord_gemini(uint8_t chord[MAX_STROKE_SIZE]);
+#endif
 
-#define TXB_GET_GROUP(code) ((code & TXB_GRPMASK) >> 6)
+// All steno keys that have been pressed to form this chord,
+// stored in MAX_STROKE_SIZE groups of 8-bit arrays.
+extern uint8_t steno_current_chord[MAX_STROKE_SIZE];
 
-#define BOLT_STATE_SIZE 4
-#define GEMINI_STATE_SIZE 6
-#define MAX_STATE_SIZE GEMINI_STATE_SIZE
-
-static uint8_t      state[MAX_STATE_SIZE] = {0};
-static uint8_t      chord[MAX_STATE_SIZE] = {0};
-static int8_t       pressed               = 0;
-static steno_mode_t mode;
-
-static const uint8_t boltmap[64] PROGMEM = {TXB_NUL, TXB_NUM, TXB_NUM, TXB_NUM, TXB_NUM, TXB_NUM, TXB_NUM, TXB_S_L, TXB_S_L, TXB_T_L, TXB_K_L, TXB_P_L, TXB_W_L, TXB_H_L, TXB_R_L, TXB_A_L, TXB_O_L, TXB_STR, TXB_STR, TXB_NUL, TXB_NUL, TXB_NUL, TXB_STR, TXB_STR, TXB_E_R, TXB_U_R, TXB_F_R, TXB_R_R, TXB_P_R, TXB_B_R, TXB_L_R, TXB_G_R, TXB_T_R, TXB_S_R, TXB_D_R, TXB_NUM, TXB_NUM, TXB_NUM, TXB_NUM, TXB_NUM, TXB_NUM, TXB_Z_R};
+// The number of physical keys actually being held down.
+// This is not always equal to the number of 1 bits in `chord` because it is possible to
+// simultaneously press down four keys, then release three of those four keys and then press yet
+// another key while the fourth finger is still holding down its key.
+// At the end of this scenario given as an example, `chord` would have five bits set to 1 but
+// `n_pressed_keys` would be set to 2 because there are only two keys currently being pressed down.
+static int8_t n_pressed_keys = 0;
 
 #ifdef STENO_COMBINEDMAP
-/* Used to look up when pressing the middle row key to combine two consonant or vowel keys */
-static const uint16_t combinedmap_first[] PROGMEM  = {STN_S1, STN_TL, STN_PL, STN_HL, STN_FR, STN_PR, STN_LR, STN_TR, STN_DR, STN_A, STN_E};
-static const uint16_t combinedmap_second[] PROGMEM = {STN_S2, STN_KL, STN_WL, STN_RL, STN_RR, STN_BR, STN_GR, STN_SR, STN_ZR, STN_O, STN_U};
+// Used to look up when pressing the middle row key to combine two consonant or vowel keys
+static const uint16_t combinedmap_first[] PROGMEM  = {QK_STENO_S1, QK_STENO_TL, QK_STENO_PL, QK_STENO_HL, QK_STENO_FR, QK_STENO_PR, QK_STENO_LR, QK_STENO_TR, QK_STENO_DR, QK_STENO_A, QK_STENO_E};
+static const uint16_t combinedmap_second[] PROGMEM = {QK_STENO_S2, QK_STENO_KL, QK_STENO_WL, QK_STENO_RL, QK_STENO_RR, QK_STENO_BR, QK_STENO_GR, QK_STENO_SR, QK_STENO_ZR, QK_STENO_O, QK_STENO_U};
+
+static bool process_steno_combinedmap(uint16_t keycode, keyrecord_t *record) {
+    uint16_t first_keycode  = pgm_read_word(&combinedmap_first[keycode - QK_STENO_S3]);
+    uint16_t second_keycode = pgm_read_word(&combinedmap_second[keycode - QK_STENO_S3]);
+
+    bool first_result  = process_steno(first_keycode, record);
+    bool second_result = process_steno(second_keycode, record);
+    return first_result && second_result;
+}
 #endif
-
-static void steno_clear_state(void) {
-    memset(state, 0, sizeof(state));
-    memset(chord, 0, sizeof(chord));
-}
-
-static void send_steno_state(uint8_t size, bool send_empty) {
-    for (uint8_t i = 0; i < size; ++i) {
-        if (chord[i] || send_empty) {
-#ifdef VIRTSER_ENABLE
-            virtser_send(chord[i]);
-#endif
-        }
-    }
-}
-
-void steno_init() {
-    if (!eeconfig_is_enabled()) {
-        eeconfig_init();
-    }
-    mode = eeprom_read_byte(EECONFIG_STENOMODE);
-}
-
-void steno_set_mode(steno_mode_t new_mode) {
-    steno_clear_state();
-    mode = new_mode;
-    eeprom_update_byte(EECONFIG_STENOMODE, mode);
-}
 
 /* override to intercept chords right before they get sent.
  * return zero to suppress normal sending behavior.
  */
-__attribute__((weak)) bool send_steno_chord_user(steno_mode_t mode, uint8_t chord[6]) {
+__attribute__((weak)) bool send_steno_chord_user(steno_mode_t mode, uint8_t chord[MAX_STROKE_SIZE]) {
     return true;
 }
 
-__attribute__((weak)) bool postprocess_steno_user(uint16_t keycode, keyrecord_t *record, steno_mode_t mode, uint8_t chord[6], int8_t pressed) {
+__attribute__((weak)) bool post_process_steno_user(uint16_t keycode, keyrecord_t *record, steno_mode_t mode, uint8_t chord[MAX_STROKE_SIZE], int8_t n_pressed_keys) {
     return true;
 }
 
@@ -114,108 +57,116 @@ __attribute__((weak)) bool process_steno_user(uint16_t keycode, keyrecord_t *rec
     return true;
 }
 
-static void send_steno_chord(void) {
-    if (send_steno_chord_user(mode, chord)) {
-        switch (mode) {
-            case STENO_MODE_BOLT:
-                send_steno_state(BOLT_STATE_SIZE, false);
-#ifdef VIRTSER_ENABLE
-                virtser_send(0); // terminating byte
+static void steno_add_keycode_to_chord(uint16_t keycode) {
+    switch (steno_get_mode()) {
+#ifdef STENO_ENABLE_BOLT
+        case STENO_MODE_BOLT:
+            steno_add_key_to_chord_bolt(steno_current_chord, keycode - QK_STENO_FUNCTION);
+            break;
 #endif
-                break;
-            case STENO_MODE_GEMINI:
-                chord[0] |= 0x80; // Indicate start of packet
-                send_steno_state(GEMINI_STATE_SIZE, true);
-                break;
-        }
+#ifdef STENO_ENABLE_GEMINI
+        case STENO_MODE_GEMINI:
+            steno_add_key_to_chord_gemini(steno_current_chord, keycode - QK_STENO_FUNCTION);
+            break;
+#endif
+        default:
+            break;
     }
-    steno_clear_state();
 }
 
-uint8_t *steno_get_state(void) {
-    return &state[0];
-}
-
-uint8_t *steno_get_chord(void) {
-    return &chord[0];
-}
-
-static bool update_state_bolt(uint8_t key, bool press) {
-    uint8_t boltcode = pgm_read_byte(boltmap + key);
-    if (press) {
-        state[TXB_GET_GROUP(boltcode)] |= boltcode;
-        chord[TXB_GET_GROUP(boltcode)] |= boltcode;
-    } else {
-        state[TXB_GET_GROUP(boltcode)] &= ~boltcode;
+static void steno_send_chord(void) {
+    switch (steno_get_mode()) {
+#ifdef STENO_ENABLE_BOLT
+        case STENO_MODE_BOLT:
+            steno_send_chord_bolt(steno_current_chord);
+            break;
+#endif
+#ifdef STENO_ENABLE_GEMINI
+        case STENO_MODE_GEMINI:
+            steno_send_chord_gemini(steno_current_chord);
+            break;
+#endif
+        default:
+            break;
     }
-    return false;
-}
-
-static bool update_state_gemini(uint8_t key, bool press) {
-    int     idx = key / 7;
-    uint8_t bit = 1 << (6 - (key % 7));
-    if (press) {
-        state[idx] |= bit;
-        chord[idx] |= bit;
-    } else {
-        state[idx] &= ~bit;
-    }
-    return false;
 }
 
 bool process_steno(uint16_t keycode, keyrecord_t *record) {
+    if (!IS_STENO_KEYCODE(keycode)) {
+        // Clearing or sending the chord state is not necessary as we intentionally ignore whatever
+        // normal keyboard keys the user may have tapped while chording steno keys.
+        return true; // pass keycode further along the chain
+    }
+
+    if (IS_NOEVENT(record->event)) {
+        return true;
+    }
+
+    if (!process_steno_user(keycode, record)) {
+        return false; // User fully processed the steno key themselves
+    }
+
     switch (keycode) {
-        case QK_STENO_BOLT:
-            if (!process_steno_user(keycode, record)) {
-                return false;
+#if NUM_STENO_PROTOCOLS > 1
+        case QK_STENO_MODE_NEXT:
+            if (record->event.pressed) {
+                steno_mode_next();
             }
-            if (IS_PRESSED(record->event)) {
+            return false;
+
+        case QK_STENO_MODE_PREVIOUS:
+            if (record->event.pressed) {
+                steno_mode_previous();
+            }
+            return false;
+
+        case QK_STENO_MODE_BOLT:
+            if (record->event.pressed) {
                 steno_set_mode(STENO_MODE_BOLT);
             }
             return false;
 
-        case QK_STENO_GEMINI:
-            if (!process_steno_user(keycode, record)) {
-                return false;
-            }
-            if (IS_PRESSED(record->event)) {
+        case QK_STENO_MODE_GEMINI:
+            if (record->event.pressed) {
                 steno_set_mode(STENO_MODE_GEMINI);
             }
             return false;
+#endif
 
 #ifdef STENO_COMBINEDMAP
-        case QK_STENO_COMB ... QK_STENO_COMB_MAX: {
-            uint8_t result;
-            result = process_steno(combinedmap_first[keycode - QK_STENO_COMB], record);
-            result &= process_steno(combinedmap_second[keycode - QK_STENO_COMB], record);
-            return result;
-        }
+        case QK_STENO_S3 ... QK_STENO_EU:
+            return process_steno_combinedmap(keycode, record);
 #endif
-        case STN__MIN ... STN__MAX:
-            if (!process_steno_user(keycode, record)) {
-                return false;
-            }
-            switch (mode) {
-                case STENO_MODE_BOLT:
-                    update_state_bolt(keycode - QK_STENO, IS_PRESSED(record->event));
-                    break;
-                case STENO_MODE_GEMINI:
-                    update_state_gemini(keycode - QK_STENO, IS_PRESSED(record->event));
-                    break;
-            }
-            // allow postprocessing hooks
-            if (postprocess_steno_user(keycode, record, mode, chord, pressed)) {
-                if (IS_PRESSED(record->event)) {
-                    ++pressed;
-                } else {
-                    --pressed;
-                    if (pressed <= 0) {
-                        pressed = 0;
-                        send_steno_chord();
-                    }
+
+        case QK_STENO_FUNCTION ... QK_STENO_ZR:
+            if (record->event.pressed) {
+                n_pressed_keys++;
+                steno_add_keycode_to_chord(keycode);
+                if (!post_process_steno_user(keycode, record, steno_get_mode(), steno_current_chord, n_pressed_keys)) {
+                    return false;
                 }
+            } else { // is released
+                n_pressed_keys--;
+                if (!post_process_steno_user(keycode, record, steno_get_mode(), steno_current_chord, n_pressed_keys)) {
+                    return false;
+                }
+                if (n_pressed_keys > 0) {
+                    // User hasn't released all keys yet,
+                    // so the chord cannot be sent
+                    return false;
+                }
+                n_pressed_keys = 0;
+                if (!send_steno_chord_user(steno_get_mode(), steno_current_chord)) {
+                    steno_clear_chord();
+                    return false;
+                }
+                steno_send_chord();
+                steno_clear_chord();
             }
             return false;
+        default:
+            break;
     }
-    return true;
+
+    return false;
 }
